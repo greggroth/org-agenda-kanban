@@ -630,28 +630,37 @@ Matches on the stable card ID, which is derived from the outline path."
       nil 'file))
     found))
 
+(defun org-kanban-modern--locate (card)
+  "Return a cons (BUFFER . POSITION) for CARD's heading, or nil.
+The stored marker is used as a fast path but verified against the card
+title first; if it no longer matches, the file is rescanned by the
+stable card ID."
+  (let* ((file (org-kanban-modern-card-file card))
+         (buf (and file (org-kanban-modern--file-buffer file)))
+         (marker (org-kanban-modern-card-marker card)))
+    (when buf
+      (with-current-buffer buf
+        (org-with-wide-buffer
+         (let ((pos (cond
+                     ((and marker (marker-position marker)
+                           (org-kanban-modern--heading-matches-p
+                            (marker-position marker) card))
+                      (marker-position marker))
+                     (t (org-kanban-modern--find-heading card)))))
+           (and pos (cons buf pos))))))))
+
 (defun org-kanban-modern--set-todo (card target)
   "Set CARD's heading to the TODO keyword TARGET in its source file.
-The stored marker is used as a fast path but verified against the card
-title first; if it no longer matches, the file is rescanned by card ID.
 The change is written through `org-todo' so logging and notes are
 honored, then the buffer is saved."
-  (let* ((file (org-kanban-modern-card-file card))
-         (buf (org-kanban-modern--file-buffer file))
-         (marker (org-kanban-modern-card-marker card)))
-    (with-current-buffer buf
+  (let ((loc (org-kanban-modern--locate card)))
+    (unless loc
+      (user-error "Cannot locate heading for %S; refresh the board"
+                  (org-kanban-modern-card-title card)))
+    (with-current-buffer (car loc)
       (org-with-wide-buffer
-       (let ((pos (cond
-                   ((and (marker-position marker)
-                         (org-kanban-modern--heading-matches-p
-                          (marker-position marker) card))
-                    (marker-position marker))
-                   (t (org-kanban-modern--find-heading card)))))
-         (unless pos
-           (user-error "Cannot locate heading for %S; refresh the board"
-                       (org-kanban-modern-card-title card)))
-         (goto-char pos)
-         (org-todo target)))
+       (goto-char (cdr loc))
+       (org-todo target))
       (save-buffer))))
 
 (defun org-kanban-modern--move (delta)
@@ -679,6 +688,50 @@ honored, then the buffer is saved."
   "Move the selected card one column to the left."
   (interactive)
   (org-kanban-modern--move -1))
+
+;;;; Visiting the source heading
+
+(defun org-kanban-modern--reveal ()
+  "Unfold the Org context around point so the heading is visible."
+  (cond ((fboundp 'org-fold-show-context) (org-fold-show-context 'org-goto))
+        ((fboundp 'org-show-context) (org-show-context 'org-goto))))
+
+(defun org-kanban-modern-visit-card (&optional other-window)
+  "Visit the selected card's heading in its source Org file.
+With a prefix argument, or when OTHER-WINDOW is non-nil, show the
+file in another window and keep focus on the board."
+  (interactive "P")
+  (let* ((card (org-kanban-modern--selected-card))
+         (loc (and card (org-kanban-modern--locate card))))
+    (unless card (user-error "No card selected"))
+    (unless loc
+      (user-error "Cannot locate heading for %S; refresh the board"
+                  (org-kanban-modern-card-title card)))
+    (let ((buf (car loc))
+          (pos (cdr loc)))
+      (if other-window
+          (save-selected-window
+            (pop-to-buffer buf)
+            (widen)
+            (goto-char pos)
+            (org-kanban-modern--reveal)
+            (recenter))
+        (pop-to-buffer-same-window buf)
+        (widen)
+        (goto-char pos)
+        (org-kanban-modern--reveal)
+        (recenter)))))
+
+(defun org-kanban-modern--mouse-visit (event)
+  "Select the card under EVENT and visit its source heading.
+Bound to a double click; the preceding single click has already
+selected the card, but this re-selects defensively before visiting."
+  (interactive "e")
+  (let* ((pos (posn-point (event-start event)))
+         (id (and pos (get-text-property pos 'org-kanban-modern-card-id))))
+    (when id (org-kanban-modern--select id))
+    (when (org-kanban-modern--selected-card)
+      (org-kanban-modern-visit-card))))
 
 ;;;; Filtering commands
 
@@ -765,6 +818,9 @@ answer clears the priority filter."
     (define-key map ">" #'org-kanban-modern-move-right)
     (define-key map "<" #'org-kanban-modern-move-left)
     (define-key map [mouse-1] #'org-kanban-modern--mouse-click)
+    (define-key map [double-mouse-1] #'org-kanban-modern--mouse-visit)
+    (define-key map (kbd "RET") #'org-kanban-modern-visit-card)
+    (define-key map "o" #'org-kanban-modern-visit-card)
     (define-key map "tt" #'org-kanban-modern-toggle-tag)
     (define-key map "tr" #'org-kanban-modern-remove-tag)
     (define-key map "tp" #'org-kanban-modern-filter-by-priority)

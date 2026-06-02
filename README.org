@@ -51,12 +51,17 @@ Run =M-x org-kanban-modern= to open the board.
 | =TAB= / =S-TAB=       | Move selection forward / backward column  |
 | =M-<right>= / =>=     | Move card to next column (persisted)      |
 | =M-<left>=  / =<=     | Move card to previous column (persisted)  |
+| =RET= / =o=           | Visit card's heading in its Org file      |
+| =double-mouse-1=      | Visit card's heading in its Org file      |
 | =t t=                 | Toggle a tag in the filter (prompt)       |
 | =t r=                 | Remove a tag from the filter (prompt)     |
 | =t p=                 | Filter by priority (prompt)               |
 | =t c=                 | Clear all filters                         |
 | =g=                   | Refresh                                   |
 | =q=                   | Quit                                      |
+
+With a prefix argument (=C-u RET= / =C-u o=), the card's heading opens in
+another window instead of the current one.
 
 * Customization
 
