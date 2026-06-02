@@ -100,6 +100,15 @@ interactively with `org-kanban-modern-set-done-window'."
                  (integer :tag "Days"))
   :group 'org-kanban-modern)
 
+(defcustom org-kanban-modern-render-markup t
+  "When non-nil, render Org inline markup in card titles.
+Emphasis (=*bold*=, =/italic/=, =_underline_=, =~code~=, ==verbatim==,
+=+strike+=) is shown with the corresponding face and its markers hidden,
+and links such as =[[target][description]]= are shown as their
+description.  When nil, titles are displayed as raw Org text."
+  :type 'boolean
+  :group 'org-kanban-modern)
+
 ;;;; Faces
 
 ;; All board faces are defined by INHERITANCE from standard faces rather than
@@ -382,6 +391,42 @@ Text properties on STR are preserved."
 (defconst org-kanban-modern--bar-width 2
   "Columns reserved at the left of each card line for the selection bar.")
 
+(defconst org-kanban-modern--markup-strip-props
+  '(keymap nil help-echo nil mouse-face nil htmlize-link nil org-emphasis nil
+    font-lock-multiline nil rear-nonsticky nil invisible nil)
+  "Property/value plist removed from fontified titles via `remove-text-properties'.
+These are Org/font-lock interaction properties that must not leak onto a
+kanban card; only display faces are kept.")
+
+(defun org-kanban-modern--fontify-title (title)
+  "Return TITLE with Org inline markup rendered, honoring options.
+When `org-kanban-modern-render-markup' is nil, return a fresh copy of
+TITLE unchanged.  Otherwise fontify it like Org would, drop the now-hidden
+emphasis markers so that `string-width' again equals the displayed width
+\(keeping wrapping and padding correct), and strip Org's link keymap and
+help-echo so cards keep their own click behavior."
+  (if (not org-kanban-modern-render-markup)
+      (copy-sequence title)
+    (let* ((org-hide-emphasis-markers t)
+           (org-link-descriptive t)
+           (fontified (condition-case nil
+                          (org-fontify-like-in-org-mode title)
+                        (error nil))))
+      (if (null fontified)
+          (copy-sequence title)
+        (let ((i 0) (n (length fontified)) (parts '()))
+          (while (< i n)
+            (if (get-text-property i 'invisible fontified)
+                (setq i (or (next-single-property-change i 'invisible fontified) n))
+              (let ((next (or (next-single-property-change i 'invisible fontified)
+                              n)))
+                (push (substring fontified i next) parts)
+                (setq i next))))
+          (let ((s (apply #'concat (nreverse parts))))
+            (remove-text-properties 0 (length s)
+                                    org-kanban-modern--markup-strip-props s)
+            s))))))
+
 (defun org-kanban-modern--tags-string (card content-width)
   "Return a propertized, clickable tag string for CARD.
 The result is truncated to CONTENT-WIDTH display columns."
@@ -436,10 +481,16 @@ CONTENT."
          (bar-char (if selectedp "▌" " "))
          (id (org-kanban-modern-card-id card))
          (prio (org-kanban-modern-card-priority card))
+         (rendered (org-kanban-modern--fontify-title
+                    (org-kanban-modern-card-title card)))
          (title (concat (when prio (propertize (format "[#%c] " prio)
                                                'face 'org-kanban-modern-priority))
-                        (propertize (org-kanban-modern-card-title card)
-                                    'face 'org-kanban-modern-title)))
+                        (progn
+                          ;; Lay the title face underneath as the base so any
+                          ;; emphasis/link faces from the markup take precedence.
+                          (add-face-text-property 0 (length rendered)
+                                                  'org-kanban-modern-title t rendered)
+                          rendered)))
          (title-lines (org-kanban-modern--wrap title content-width))
          (lines '()))
     ;; Cap card height: at most three title lines, with an ellipsis if clipped.

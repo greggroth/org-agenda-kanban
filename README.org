@@ -72,6 +72,10 @@ See =M-x customize-group RET org-kanban-modern RET=.  Key variables:
 - ~org-kanban-modern-columns~ — column keywords (default from
   ~org-todo-keywords~).
 - ~org-kanban-modern-column-width~ — fixed column width in characters.
+- ~org-kanban-modern-render-markup~ — render Org inline markup in card
+  titles (default ~t~).  Emphasis (=*bold*=, =/italic/=, =~code~=, …) is
+  shown with its face and markers hidden, and links =[[target][desc]]= are
+  shown as their description.  Set to ~nil~ to display raw Org text.
 - ~org-kanban-modern-done-within-days~ — only show done cards closed within
   this many days (default 7; ~nil~ shows all).  Done cards with no =CLOSED=
   timestamp are always shown.  Adjust live with =t d=, or click the

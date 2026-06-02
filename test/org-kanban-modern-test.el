@@ -120,6 +120,32 @@
                    '("a" "c")))
     (should (null (org-kanban-modern--cards-for-column "DONE" cards)))))
 
+;;;; Markup rendering
+
+(ert-deftest org-kanban-modern-test-fontify-title-off ()
+  (let ((org-kanban-modern-render-markup nil))
+    (should (equal (org-kanban-modern--fontify-title "raw *x* text")
+                   "raw *x* text"))))
+
+(ert-deftest org-kanban-modern-test-fontify-title-emphasis ()
+  (let ((org-kanban-modern-render-markup t))
+    (let ((s (org-kanban-modern--fontify-title "has *bold* word")))
+      ;; Emphasis markers are dropped, so width matches the display.
+      (should (equal (substring-no-properties s) "has bold word"))
+      (should (= (string-width s) 13))
+      ;; The inner text carries the bold face.
+      (let ((f (get-text-property 4 'face s)))
+        (should (memq 'bold (if (listp f) f (list f))))))))
+
+(ert-deftest org-kanban-modern-test-fontify-title-link ()
+  (let ((org-kanban-modern-render-markup t))
+    (let ((s (org-kanban-modern--fontify-title "see [[https://x.org][Docs]] now")))
+      ;; The link collapses to its description.
+      (should (equal (substring-no-properties s) "see Docs now"))
+      ;; Org's link keymap and help-echo must not leak onto the card.
+      (should-not (get-text-property 4 'keymap s))
+      (should-not (get-text-property 4 'help-echo s)))))
+
 ;;;; Done date filtering
 
 (defun org-kanban-modern-test--closed (days-ago)
