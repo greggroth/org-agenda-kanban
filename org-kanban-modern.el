@@ -194,8 +194,12 @@ Inherits `region' so the selection uses the theme's selection color."
 
 (defface org-kanban-modern-selection-bar
   '((t :inherit (fixed-pitch link) :weight bold))
-  "Face for the accent bar marking the selected card.
-Inherits `link' to borrow the theme's accent foreground."
+  "Face supplying the accent color of the selected card's bar.
+Inherits `link' to borrow the theme's accent foreground.  On graphical
+frames the bar is drawn as a solid background fill using this face's
+foreground color, so it tiles seamlessly across a card's lines; where no
+color is available (e.g. a terminal) the bar falls back to a `▌' glyph
+drawn with this face."
   :group 'org-kanban-modern)
 
 (defface org-kanban-modern-title
@@ -599,8 +603,17 @@ selection background is not overdrawn on hover."
          (base (cond (selectedp 'org-kanban-modern-card-selected)
                      ((org-kanban-modern--priority-background-face prio))
                      (t 'org-kanban-modern-card)))
-         (bar-face (if selectedp 'org-kanban-modern-selection-bar base))
-         (bar-char (if selectedp "▌" " "))
+         ;; Draw the selection accent as a solid background fill rather than a
+         ;; foreground glyph: a half-block character only paints as tall as its
+         ;; glyph, so it looks segmented between a card's lines, whereas a
+         ;; background fill tiles seamlessly across them.
+         (bar-color (and selectedp
+                         (or (face-foreground 'org-kanban-modern-selection-bar nil t)
+                             (face-foreground 'link nil t))))
+         (bar-face (cond ((not selectedp) base)
+                         (bar-color (list (list :background bar-color) base))
+                         (t (list 'org-kanban-modern-selection-bar base))))
+         (bar-char (if (and selectedp (not bar-color)) "▌" " "))
          (id (org-kanban-modern-card-id card))
          (rendered (org-kanban-modern--fontify-title
                     (org-kanban-modern-card-title card)))
