@@ -172,12 +172,13 @@ See =M-x customize-group RET org-kanban-modern RET=.  Key variables:
   line beneath the title with any repeater preserved.  Set to ~nil~ to hide
   them.
 - ~org-kanban-modern-scheduled-glyph~ / ~org-kanban-modern-deadline-glyph~ —
-  prefixes shown before the scheduled (default ="◷ "=) and deadline
-  (default ="⚑ "=) timestamps.  Prefer a monochrome (text-presentation)
-  glyph so its width matches the card's fixed-pitch grid; avoid emoji such
-  as =⏰=, which Emacs draws from a fallback emoji font whose advance does
-  not align to the monospace grid (misaligning the timestamp).  Use a short
-  text label (e.g. ="S: "=) if the glyph does not render in your font.
+  prefixes shown before the scheduled (default ="S "=) and deadline (default
+  ="D "=) timestamps.  These default to ASCII labels so their width is
+  deterministic: cards are a fixed-pitch monospace grid, and a non-ASCII glyph
+  that is absent from your fixed-pitch font is drawn from a fallback font whose
+  advance does not align to the grid (misaligning the timestamp).  You may set
+  a Unicode glyph (e.g. ="◷ "= / ="⚑ "=) only if it is present in your
+  fixed-pitch font with matching metrics.
 - ~org-kanban-modern-planning-compact~ — when non-nil (the default), omit the
   day-of-week name from planning timestamps (e.g. =2026-06-03 11:00 +1w=
   instead of =2026-06-03 Wed 11:00 +1w=) so they fit the card width.  Set to

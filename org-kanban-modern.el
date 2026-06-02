@@ -135,23 +135,23 @@ glyphs are set by `org-kanban-modern-scheduled-glyph' and
   :type 'boolean
   :group 'org-kanban-modern)
 
-(defcustom org-kanban-modern-scheduled-glyph "◷ "
+(defcustom org-kanban-modern-scheduled-glyph "S "
   "Prefix shown before a card's SCHEDULED timestamp.
-Prefer a monochrome (text-presentation) glyph so its width matches the
-card's fixed-pitch grid.  Avoid emoji such as =⏰= (U+23F0): Emacs draws
-them from a fallback emoji font whose advance does not align to the
-monospace grid, which misaligns the timestamp and can push it past the
-card edge.  Use a short text label (e.g. \"S: \") if the glyph does not
-render in your font."
+Defaults to an ASCII label so its width is deterministic: cards are a
+fixed-pitch monospace grid, and a non-ASCII glyph that is absent from
+your fixed-pitch font is drawn from a fallback font whose advance does
+not align to the grid, which misaligns the timestamp and can push it
+past the card edge.  You may set a Unicode glyph (e.g. \"◷ \") only if it
+is present in your fixed-pitch font with matching metrics."
   :type 'string
   :group 'org-kanban-modern)
 
-(defcustom org-kanban-modern-deadline-glyph "⚑ "
+(defcustom org-kanban-modern-deadline-glyph "D "
   "Prefix shown before a card's DEADLINE timestamp.
-Prefer a monochrome (text-presentation) glyph so its width matches the
-card's fixed-pitch grid; avoid emoji, which Emacs draws from a fallback
-font that does not align to the monospace grid.  Use a short text label
-(e.g. \"D: \") if the glyph does not render in your font."
+Defaults to an ASCII label so its width is deterministic; see
+`org-kanban-modern-scheduled-glyph' for why non-ASCII glyphs can
+misalign the monospace card grid.  You may set a Unicode glyph (e.g.
+\"⚑ \") only if it is present in your fixed-pitch font."
   :type 'string
   :group 'org-kanban-modern)
 

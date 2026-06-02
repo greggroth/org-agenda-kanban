@@ -298,14 +298,17 @@ order."
     (should (= (length (org-kanban-modern--planning-lines card 40)) 1))))
 
 (ert-deftest org-kanban-modern-test-default-glyph-widths ()
-  "Default planning glyphs are deterministic single-cell, non-emoji symbols.
-An emoji default (e.g. ⏰, width 2 + emoji presentation) is drawn from a
-fallback font whose advance does not align to the fixed-pitch card grid,
-which misaligns the timestamp.  Guard against regressing the defaults."
+  "Default planning glyphs are pure ASCII for a deterministic grid width.
+A non-ASCII default (emoji, or any symbol absent from the user's
+fixed-pitch font) is drawn from a fallback font whose pixel advance does
+not align to the monospace card grid, which misaligns the timestamp.
+ASCII chars are guaranteed to render in the fixed-pitch font, so guard
+against regressing the defaults to non-ASCII."
   (dolist (glyph (list org-kanban-modern-scheduled-glyph
                        org-kanban-modern-deadline-glyph))
-    ;; First char is the symbol; it must occupy exactly one monospace cell.
-    (should (= 1 (char-width (aref glyph 0))))))
+    (dolist (ch (string-to-list glyph))
+      ;; Each char must be ASCII (< 128) so it lives in the fixed-pitch font.
+      (should (< ch 128)))))
 
 (ert-deftest org-kanban-modern-test-strip-weekday ()
   "`--strip-weekday' drops the day name but keeps time, repeater, warning."
