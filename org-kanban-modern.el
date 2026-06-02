@@ -149,6 +149,16 @@ your font."
   :type 'string
   :group 'org-kanban-modern)
 
+(defcustom org-kanban-modern-planning-compact t
+  "When non-nil, omit the day-of-week name from planning timestamps.
+Planning timestamps (with a date, optional time, and any repeater) are
+often wider than a card.  The weekday name is redundant with the date,
+so dropping it (e.g. =2026-06-03 11:00 +1w= instead of =2026-06-03 Wed
+11:00 +1w=) helps the timestamp fit the card width.  Set to nil to keep
+the weekday name."
+  :type 'boolean
+  :group 'org-kanban-modern)
+
 (defcustom org-kanban-modern-priority-style 'cookie
   "How a card reflects its Org priority.
 Priority colors come from Org's own `org-priority-faces' (with the
@@ -591,15 +601,42 @@ pair of a =<a>--<b>= range) while keeping the dates, times, and any
 repeater or warning period intact."
   (string-trim (replace-regexp-in-string "[][<>]" "" raw)))
 
+(defun org-kanban-modern--strip-weekday (ts)
+  "Return TS (a bracket-stripped timestamp) without its day-of-week name.
+Org renders a timestamp's date as =YYYY-MM-DD DAYNAME=; the DAYNAME token
+(localised, possibly non-ASCII and possibly ending in =.=) sits between
+the date and any time or repeater.  TS is only compacted when it begins
+with an ISO date and is not a =<a>--<b>= range (so diary sexp timestamps
+and ranges are returned unchanged).  The weekday is dropped only when it
+is the second whitespace token and is neither a time (contains =:=), a
+repeater/warning (starts with =+=, =-=, or =.=), nor numeric."
+  (if (or (string-match-p "--" ts)
+          (not (string-match-p "\\`[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}\\(?: \\|\\'\\)"
+                               ts)))
+      ts
+    (let ((parts (split-string ts " " t)))
+      (if (and (cdr parts)
+               (let ((tok (nth 1 parts)))
+                 (and (not (string-match-p ":" tok))
+                      (not (string-match-p "\\`[-+.0-9]" tok)))))
+          (mapconcat #'identity (cons (car parts) (cddr parts)) " ")
+        ts))))
+
 (defun org-kanban-modern--planning-line (glyph raw face content-width)
   "Return a propertized planning line for RAW timestamp.
-GLYPH prefixes the formatted timestamp, FACE styles the whole line, and
-the result is truncated to CONTENT-WIDTH display columns."
-  (let ((s (propertize (concat glyph (org-kanban-modern--format-timestamp raw))
-                       'face face)))
-    (if (> (string-width s) content-width)
-        (truncate-string-to-width s content-width nil nil t)
-      s)))
+GLYPH prefixes the formatted timestamp and FACE styles the line.  When
+`org-kanban-modern-planning-compact' is non-nil the day-of-week name is
+dropped so the timestamp is more likely to fit.  The line is truncated
+to CONTENT-WIDTH display columns."
+  (let* ((ts (org-kanban-modern--format-timestamp raw))
+         (ts (if org-kanban-modern-planning-compact
+                 (org-kanban-modern--strip-weekday ts)
+               ts))
+         (text (concat glyph ts))
+         (shown (if (> (string-width text) content-width)
+                    (truncate-string-to-width text content-width nil nil t)
+                  text)))
+    (propertize shown 'face face)))
 
 (defun org-kanban-modern--planning-lines (card content-width)
   "Return CARD's planning lines (0-2) truncated to CONTENT-WIDTH.

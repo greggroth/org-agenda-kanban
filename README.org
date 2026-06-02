@@ -33,7 +33,9 @@ configurable set of Org files.  The board is inspired by the visual polish of
   uses (see ~org-kanban-modern-priority-style~).
 - *Planning timestamps.*  A card shows its =SCHEDULED= and =DEADLINE=
   timestamps when set, each on its own line beneath the title, with any
-  repeater (e.g. =+1w=) preserved.  Toggle with
+  repeater (e.g. =+1w=) preserved.  The redundant day-of-week name is
+  dropped by default so timestamps fit the card width; keep it with
+  ~org-kanban-modern-planning-compact~.  Toggle the lines with
   ~org-kanban-modern-show-planning~ and set the glyphs with
   ~org-kanban-modern-scheduled-glyph~ / ~org-kanban-modern-deadline-glyph~.
 - *Sorting.*  Within each column, cards are sorted by Org priority (highest
@@ -173,6 +175,10 @@ See =M-x customize-group RET org-kanban-modern RET=.  Key variables:
   prefixes shown before the scheduled (default ="⏰ "=) and deadline
   (default ="⚑ "=) timestamps.  Use a short text label (e.g. ="S: "=) if the
   glyph does not render in your font.
+- ~org-kanban-modern-planning-compact~ — when non-nil (the default), omit the
+  day-of-week name from planning timestamps (e.g. =2026-06-03 11:00 +1w=
+  instead of =2026-06-03 Wed 11:00 +1w=) so they fit the card width.  Set to
+  ~nil~ to keep the weekday name.
 - ~org-kanban-modern-line-spacing~ — buffer-local ~line-spacing~ for the board
   (default ~0~).  Cards are solid colored tiles; if your frame or theme adds
   inter-line spacing, the card background does not fill it and faint stripes

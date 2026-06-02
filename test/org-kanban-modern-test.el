@@ -268,6 +268,7 @@ order."
   "Planning lines render deadline first, then scheduled, gated on the toggle."
   (let* ((org-kanban-modern-scheduled-glyph "S:")
          (org-kanban-modern-deadline-glyph "D:")
+         (org-kanban-modern-planning-compact nil)
          (card (org-kanban-modern-card-create
                 :id "x" :title "Task" :todo "TODO"
                 :scheduled "<2026-06-02 Tue +1w>"
@@ -295,6 +296,50 @@ order."
                :id "z" :title "Task" :todo "TODO"
                :scheduled "<2026-06-02 Tue>")))
     (should (= (length (org-kanban-modern--planning-lines card 40)) 1))))
+
+(ert-deftest org-kanban-modern-test-strip-weekday ()
+  "`--strip-weekday' drops the day name but keeps time, repeater, warning."
+  ;; Date + weekday only.
+  (should (equal (org-kanban-modern--strip-weekday "2026-06-02 Tue")
+                 "2026-06-02"))
+  ;; Date + weekday + time.
+  (should (equal (org-kanban-modern--strip-weekday "2026-06-03 Wed 11:00")
+                 "2026-06-03 11:00"))
+  ;; Date + weekday + time + repeater + warning.
+  (should (equal (org-kanban-modern--strip-weekday "2026-06-03 Wed 11:00 +1w -3d")
+                 "2026-06-03 11:00 +1w -3d"))
+  ;; A non-ASCII (localised) weekday is still dropped.
+  (should (equal (org-kanban-modern--strip-weekday "2026-06-03 木 11:00")
+                 "2026-06-03 11:00"))
+  ;; A locale weekday abbreviation ending in a period is still dropped.
+  (should (equal (org-kanban-modern--strip-weekday "2026-06-03 mer. 11:00")
+                 "2026-06-03 11:00"))
+  ;; No weekday present: returned unchanged.
+  (should (equal (org-kanban-modern--strip-weekday "2026-06-03 11:00")
+                 "2026-06-03 11:00"))
+  ;; A range is left intact (no corruption of the second date).
+  (should (equal (org-kanban-modern--strip-weekday "2026-06-02 Tue--2026-06-03 Wed")
+                 "2026-06-02 Tue--2026-06-03 Wed"))
+  ;; A diary sexp timestamp (no ISO date prefix) is left intact.
+  (should (equal (org-kanban-modern--strip-weekday "%%(diary-float t 4 2)")
+                 "%%(diary-float t 4 2)")))
+
+(ert-deftest org-kanban-modern-test-planning-compact ()
+  "`org-kanban-modern-planning-compact' toggles weekday display."
+  (let* ((org-kanban-modern-scheduled-glyph "S:")
+         (card (org-kanban-modern-card-create
+                :id "c" :title "Task" :todo "TODO"
+                :scheduled "<2026-06-03 Wed 11:00 +1w>"))
+         (org-kanban-modern-show-planning t))
+    ;; Compact (default): the weekday is gone, the repeater stays.
+    (let* ((org-kanban-modern-planning-compact t)
+           (line (car (org-kanban-modern--planning-lines card 40))))
+      (should (string-match-p (regexp-quote "2026-06-03 11:00 +1w") line))
+      (should-not (string-match-p "Wed" line)))
+    ;; Disabled: the weekday is preserved.
+    (let* ((org-kanban-modern-planning-compact nil)
+           (line (car (org-kanban-modern--planning-lines card 40))))
+      (should (string-match-p (regexp-quote "2026-06-03 Wed 11:00 +1w") line)))))
 
 (ert-deftest org-kanban-modern-test-planning-lines-in-card ()
   "Planning lines appear between the title and the tags in a rendered card."
