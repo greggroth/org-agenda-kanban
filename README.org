@@ -106,6 +106,12 @@ get started.  A couple of standard Org settings make it nicer:
 
 Run =M-x org-kanban-modern= to open the board.
 
+A ready-made sample board lives at [[file:examples/demo.org][examples/demo.org]] — open it and follow
+the comment header (it sets ~org-kanban-modern-files~ and
+~org-kanban-modern-columns~ to that file) to see every feature at once: all
+five columns, priorities, tag chips, =SCHEDULED= / =DEADLINE= lines with
+repeaters, inline markup, and recently-closed cards.
+
 ** Keybindings
 
 | Key                   | Action                                    |

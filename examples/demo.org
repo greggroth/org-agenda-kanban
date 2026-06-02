@@ -1,0 +1,64 @@
+#+title: org-kanban-modern — demo board
+#+author: Gregg Rothmeier
+#+todo: TODO STARTED WAITING | DONE CANCELLED
+
+# A representative board for screenshots and trying out org-kanban-modern.
+#
+# Quick start — open this file, then evaluate:
+#
+#   (require 'org-kanban-modern)
+#   (setq org-kanban-modern-files   (list (buffer-file-name)))
+#   (setq org-kanban-modern-columns '("TODO" "STARTED" "WAITING"
+#                                      "DONE" "CANCELLED"))
+#   (org-kanban-modern)
+#
+# Columns come from the GLOBAL `org-todo-keywords' (or
+# `org-kanban-modern-columns'); the file-local `#+todo:' above only affects
+# this buffer, so set `org-kanban-modern-columns' as shown for matching
+# columns.  For live use, also `(setq org-log-done 'time)' so newly-finished
+# cards get a CLOSED stamp and stay visible under the done-date filter.
+#
+# Dates below sit around 2026-06-02 so the SCHEDULED/DEADLINE lines and the
+# recent CLOSED stamps render meaningfully.
+
+* TODO [#A] Review open PRs                                        :work:review:
+SCHEDULED: <2026-06-03 Wed 11:00 ++1d>
+
+* TODO [#A] Renew passport before the /Lisbon/ trip                 :home:urgent:
+DEADLINE: <2026-06-12 Fri -7d>
+
+* TODO [#B] Draft the *launch* announcement                        :work:writing:
+
+* TODO Process email inbox                                           :work:email:
+SCHEDULED: <2026-06-02 Tue 09:00 ++1d>
+
+* TODO [#C] Read ~SICP~ chapter 2                                          :home:
+
+* TODO [#B] Book a dentist appointment                              :home:health:
+
+* STARTED [#A] Draft the Q3 roadmap                                        :work:
+DEADLINE: <2026-06-09 Tue> SCHEDULED: <2026-06-03 Wed>
+
+* STARTED [#B] Refactor the [[https://example.com/auth][auth module]]      :work:
+
+* STARTED Plan the weekend /hike/                                          :home:
+
+* WAITING [#B] Feedback on the design doc                          :work:review:
+SCHEDULED: <2026-06-05 Fri>
+
+* WAITING [#C] Reply from the landlord about the lease                     :home:
+
+* DONE [#A] Ship the =v2.0= release                                        :work:
+CLOSED: [2026-06-01 Mon 16:42]
+
+* DONE [#B] Submit the *expense* report                          :work:finance:
+CLOSED: [2026-05-30 Sat 10:05]
+
+* DONE Water the plants                                                    :home:
+CLOSED: [2026-06-02 Tue 08:15]
+
+* CANCELLED [#C] Migrate the legacy ~cron~ jobs                            :work:
+CLOSED: [2026-05-29 Fri 13:20]
+
+* DONE [#B] Archive last quarter's notes                                   :work:
+CLOSED: [2026-05-10 Sun 17:30]
