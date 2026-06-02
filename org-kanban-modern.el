@@ -135,6 +135,17 @@ glyphs are set by `org-kanban-modern-scheduled-glyph' and
   :type 'boolean
   :group 'org-kanban-modern)
 
+(defcustom org-kanban-modern-use-tag-faces t
+  "When non-nil, color tag chips using Org's `org-tag-faces'.
+Each tag's color (from `org-tag-faces', resolved via
+`org-get-tag-face') is layered onto the chip while the package's
+own state decoration is preserved: included tags stay inverse, and
+excluded tags keep their strike-through.  A fixed-pitch family is
+forced first so per-tag faces cannot break the card grid.  When
+nil, chips use the package faces only, exactly as before."
+  :type 'boolean
+  :group 'org-kanban-modern)
+
 (defcustom org-kanban-modern-scheduled-glyph "S "
   "Prefix shown before a card's SCHEDULED timestamp.
 Defaults to an ASCII label so its width is deterministic: cards are a
@@ -712,15 +723,30 @@ set), or nil when planning display is disabled or neither is set."
   "Keymap placed on card tag chips so S-mouse-1 toggles the exclude filter.
 Plain mouse-1 is intentionally left to the mode map's selection handler.")
 
+(defun org-kanban-modern--chip-face (tag base)
+  "Return the `face' value for a chip showing TAG, layered over BASE.
+When `org-kanban-modern-use-tag-faces' is nil, BASE is returned
+unchanged.  Otherwise a face list is returned: `fixed-pitch'
+first (so a per-tag face cannot change the chip's family and break
+the card grid), then the tag's own face from `org-get-tag-face'
+\(supplying the tag color, or `org-tag' when the tag is unmapped),
+then BASE last (so the package's state decoration -- inverse-video
+for include, strike-through for exclude -- still applies)."
+  (if org-kanban-modern-use-tag-faces
+      (list 'fixed-pitch (org-get-tag-face tag) base)
+    base))
+
 (defun org-kanban-modern--tags-string (card content-width)
   "Return a propertized, clickable tag string for CARD.
 The result is truncated to CONTENT-WIDTH display columns."
   (let ((chips '()))
     (dolist (tag (org-kanban-modern-card-tags card))
-      (let ((face (pcase (org-kanban-modern--tag-state tag)
-                    ('include 'org-kanban-modern-tag-active)
-                    ('exclude 'org-kanban-modern-tag-excluded)
-                    (_ 'org-kanban-modern-tag))))
+      (let ((face (org-kanban-modern--chip-face
+                   tag
+                   (pcase (org-kanban-modern--tag-state tag)
+                     ('include 'org-kanban-modern-tag-active)
+                     ('exclude 'org-kanban-modern-tag-excluded)
+                     (_ 'org-kanban-modern-tag)))))
         (push (propertize (concat "#" tag)
                           'face face
                           'org-kanban-modern-tag tag
@@ -1286,7 +1312,8 @@ Re-collects the board so the new window takes effect."
   (let ((chips '()))
     (dolist (tag (reverse org-kanban-modern--tag-filter))
       (push (propertize (format " +#%s ✕ " tag)
-                        'face 'org-kanban-modern-filter-chip
+                        'face (org-kanban-modern--chip-face
+                               tag 'org-kanban-modern-filter-chip)
                         'mouse-face 'highlight
                         'keymap (org-kanban-modern--chip-keymap
                                  #'org-kanban-modern--remove-include-tag tag)
@@ -1294,7 +1321,8 @@ Re-collects the board so the new window takes effect."
             chips))
     (dolist (tag (reverse org-kanban-modern--tag-exclude))
       (push (propertize (format " -#%s ✕ " tag)
-                        'face 'org-kanban-modern-filter-chip-exclude
+                        'face (org-kanban-modern--chip-face
+                               tag 'org-kanban-modern-filter-chip-exclude)
                         'mouse-face 'highlight
                         'keymap (org-kanban-modern--chip-keymap
                                  #'org-kanban-modern--remove-exclude-tag tag)

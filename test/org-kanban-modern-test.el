@@ -189,6 +189,32 @@
       (should-not org-kanban-modern--tag-exclude)
       (should-not org-kanban-modern--priority-filter))))
 
+(ert-deftest org-kanban-modern-test-chip-face-off-returns-base ()
+  (let ((org-kanban-modern-use-tag-faces nil)
+        (org-tag-faces '(("work" . "red"))))
+    (should (eq (org-kanban-modern--chip-face
+                 "work" 'org-kanban-modern-tag)
+                'org-kanban-modern-tag))))
+
+(ert-deftest org-kanban-modern-test-chip-face-on-unmapped ()
+  (let ((org-kanban-modern-use-tag-faces t)
+        (org-tag-faces nil))
+    (should (equal (org-kanban-modern--chip-face
+                    "work" 'org-kanban-modern-tag)
+                   (list 'fixed-pitch 'org-tag 'org-kanban-modern-tag)))))
+
+(ert-deftest org-kanban-modern-test-chip-face-on-color-mapped ()
+  (let ((org-kanban-modern-use-tag-faces t)
+        (org-tag-faces '(("work" . "red"))))
+    (let ((result (org-kanban-modern--chip-face
+                   "work" 'org-kanban-modern-tag-active)))
+      ;; fixed-pitch must lead so the per-tag face cannot break the grid.
+      (should (eq (car result) 'fixed-pitch))
+      ;; the resolved tag spec (a plist) sits between fixed-pitch and base.
+      (should (equal (nth 1 result) (org-get-tag-face "work")))
+      ;; base stays last so state decoration still applies.
+      (should (eq (nth 2 result) 'org-kanban-modern-tag-active)))))
+
 (ert-deftest org-kanban-modern-test-filter-priority ()
   (with-temp-buffer
     (let ((cards (list (org-kanban-modern-test--card "a" "TODO" nil ?A)

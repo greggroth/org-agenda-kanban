@@ -27,7 +27,9 @@ configurable set of Org files.  The board is inspired by the visual polish of
   carry every included tag); shift-click (=S-mouse-1=) to *exclude* it (cards
   carrying it are hidden).  A tag is only ever in one of the two filters.  Active
   filters appear as chips in the header line — =+#tag= for includes and =-#tag=
-  for excludes — click one to remove it.
+  for excludes — click one to remove it.  Tag chips honor Org's
+  ~org-tag-faces~, so per-tag colors show through on the board; disable with
+  ~org-kanban-modern-use-tag-faces~.
 - *Priority filtering.*  Filter by Org priority, with a clickable priority
   cookie on each card.
 - *Priority coloring.*  The =[#X]= priority cookie on each card is colored
@@ -191,6 +193,12 @@ See =M-x customize-group RET org-kanban-modern RET=.  Key variables:
   =DEADLINE= timestamps when set (default ~t~).  Each is rendered on its own
   line beneath the title with any repeater preserved.  Set to ~nil~ to hide
   them.
+- ~org-kanban-modern-use-tag-faces~ — color tag chips using Org's
+  ~org-tag-faces~ (default ~t~).  Each tag's color is layered onto the chip
+  while the package's state decoration is preserved (included tags stay
+  inverse, excluded tags keep their strike-through), and a fixed-pitch family
+  is forced so a per-tag face cannot break the card grid.  Set to ~nil~ to use
+  the package faces only.
 - ~org-kanban-modern-scheduled-glyph~ / ~org-kanban-modern-deadline-glyph~ —
   prefixes shown before the scheduled (default ="S "=) and deadline (default
   ="D "=) timestamps.  These default to ASCII labels so their width is
