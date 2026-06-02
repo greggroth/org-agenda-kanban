@@ -297,6 +297,16 @@ order."
                :scheduled "<2026-06-02 Tue>")))
     (should (= (length (org-kanban-modern--planning-lines card 40)) 1))))
 
+(ert-deftest org-kanban-modern-test-default-glyph-widths ()
+  "Default planning glyphs are deterministic single-cell, non-emoji symbols.
+An emoji default (e.g. ⏰, width 2 + emoji presentation) is drawn from a
+fallback font whose advance does not align to the fixed-pitch card grid,
+which misaligns the timestamp.  Guard against regressing the defaults."
+  (dolist (glyph (list org-kanban-modern-scheduled-glyph
+                       org-kanban-modern-deadline-glyph))
+    ;; First char is the symbol; it must occupy exactly one monospace cell.
+    (should (= 1 (char-width (aref glyph 0))))))
+
 (ert-deftest org-kanban-modern-test-strip-weekday ()
   "`--strip-weekday' drops the day name but keeps time, repeater, warning."
   ;; Date + weekday only.

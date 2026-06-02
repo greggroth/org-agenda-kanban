@@ -135,17 +135,23 @@ glyphs are set by `org-kanban-modern-scheduled-glyph' and
   :type 'boolean
   :group 'org-kanban-modern)
 
-(defcustom org-kanban-modern-scheduled-glyph "⏰ "
+(defcustom org-kanban-modern-scheduled-glyph "◷ "
   "Prefix shown before a card's SCHEDULED timestamp.
-Use a short text label (e.g. \"S: \") if the glyph does not render in
-your font."
+Prefer a monochrome (text-presentation) glyph so its width matches the
+card's fixed-pitch grid.  Avoid emoji such as =⏰= (U+23F0): Emacs draws
+them from a fallback emoji font whose advance does not align to the
+monospace grid, which misaligns the timestamp and can push it past the
+card edge.  Use a short text label (e.g. \"S: \") if the glyph does not
+render in your font."
   :type 'string
   :group 'org-kanban-modern)
 
 (defcustom org-kanban-modern-deadline-glyph "⚑ "
   "Prefix shown before a card's DEADLINE timestamp.
-Use a short text label (e.g. \"D: \") if the glyph does not render in
-your font."
+Prefer a monochrome (text-presentation) glyph so its width matches the
+card's fixed-pitch grid; avoid emoji, which Emacs draws from a fallback
+font that does not align to the monospace grid.  Use a short text label
+(e.g. \"D: \") if the glyph does not render in your font."
   :type 'string
   :group 'org-kanban-modern)
 
