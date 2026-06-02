@@ -224,6 +224,13 @@ Sets no background so the card background shows through."
 Uses `:inverse-video' so the highlight tracks the theme."
   :group 'org-kanban-modern)
 
+(defface org-kanban-modern-tag-hover
+  '((t :inherit (org-kanban-modern-tag highlight)))
+  "Face shown while the mouse hovers a clickable tag chip.
+Layers the theme's `highlight' background beneath the tag styling to
+signal that clicking the tag toggles it in the filter."
+  :group 'org-kanban-modern)
+
 (defface org-kanban-modern-filter-chip
   '((t :inherit (fixed-pitch mode-line-emphasis) :inverse-video t))
   "Face for an active-filter chip in the header line."
@@ -564,7 +571,7 @@ The result is truncated to CONTENT-WIDTH display columns."
         (push (propertize (concat "#" tag)
                           'face face
                           'org-kanban-modern-tag tag
-                          'mouse-face 'highlight
+                          'mouse-face 'org-kanban-modern-tag-hover
                           'help-echo "mouse-1: toggle this tag in the filter")
               chips)))
     (let ((s (mapconcat #'identity (nreverse chips) " ")))
@@ -572,15 +579,18 @@ The result is truncated to CONTENT-WIDTH display columns."
           (truncate-string-to-width s content-width nil nil t)
         s))))
 
-(defun org-kanban-modern--finish-line (content width base bar-face bar-char id selectedp)
+(defun org-kanban-modern--finish-line (content width base bar-face bar-char id)
   "Assemble one card line of exactly WIDTH columns.
 CONTENT is the (already propertized) text after the selection bar.
 BASE is the card background face, applied beneath everything so the
 padding is filled.  BAR-FACE/BAR-CHAR draw the selection bar.  ID is
 stamped on every character so click and movement commands can find the
-card; it never clobbers the per-tag `keymap'-free properties already on
-CONTENT.  SELECTEDP non-nil suppresses the hover `mouse-face' so the
-selection background is not overdrawn on hover."
+card; it never clobbers the per-tag properties (such as the tag chips'
+own `mouse-face') already on CONTENT.
+
+No card-wide `mouse-face' is set: the whole card does not change color on
+hover.  Only the tag chips carry a hover face, signalling that they are
+the clickable, filter-toggling elements."
   (let* ((content-width (- width org-kanban-modern--bar-width))
          (padded (org-kanban-modern--pad content content-width))
          (line (concat (propertize bar-char 'face bar-face)
@@ -591,7 +601,6 @@ selection background is not overdrawn on hover."
     (add-face-text-property 0 (length line) base t line)
     (add-text-properties 0 (length line)
                          (list 'org-kanban-modern-card-id id
-                               'mouse-face (unless selectedp 'highlight)
                                'help-echo "mouse-1: select  M-<left>/<right>: move")
                          line)
     line))
@@ -637,13 +646,12 @@ selection background is not overdrawn on hover."
                                        (concat (nth 2 title-lines) "…")
                                        content-width)))))
     (dolist (tl title-lines)
-      (push (org-kanban-modern--finish-line tl width base bar-face bar-char id
-                                            selectedp)
+      (push (org-kanban-modern--finish-line tl width base bar-face bar-char id)
             lines))
     (when (org-kanban-modern-card-tags card)
       (push (org-kanban-modern--finish-line
              (org-kanban-modern--tags-string card content-width)
-             width base bar-face bar-char id selectedp)
+             width base bar-face bar-char id)
             lines))
     (nreverse lines)))
 

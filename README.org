@@ -19,10 +19,10 @@ configurable set of Org files.  The board is inspired by the visual polish of
   distinct highlight.
 - *Keyboard to move.*  Move the selected card between columns; the change is
   *written back* to the source Org file via ~org-todo~ (logging/notes honored).
-- *Tags on cards, elfeed-style filtering.*  Tags appear as clickable chips.
-  Click a tag on a card to toggle it into the filter (multiple tags combine with
-  AND).  Active filters appear as chips in the header line — click one to remove
-  it.
+- *Tags on cards, elfeed-style filtering.*  Tags appear as clickable chips that
+  highlight on hover.  Click a tag on a card to toggle it into the filter
+  (multiple tags combine with AND).  Active filters appear as chips in the header
+  line — click one to remove it.
 - *Priority filtering.*  Filter by Org priority, with a clickable priority
   cookie on each card.
 - *Priority coloring.*  Cards reflect their Org priority using your configured
