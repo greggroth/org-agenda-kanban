@@ -44,6 +44,16 @@ configurable set of Org files.  The board is inspired by the visual polish of
   =[#B]= cards.  Set ~org-kanban-modern-sort~ to ~document~ for source order,
   or to a predicate for a custom order.
 
+* Screenshots
+
+** Dark Mode Example (ef-maris-dark)
+
+[[file:screenshots/dark-mode.png]]
+
+** Light Mode Example (ef-light)
+
+[[file:screenshots/light-mode.png]]
+
 * Installation
 
 The package lives at [[https://github.com/greggroth/org-kanban-modern][github.com/greggroth/org-kanban-modern]].
