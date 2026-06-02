@@ -143,6 +143,24 @@ saturated."
   :type 'number
   :group 'org-kanban-modern)
 
+(defcustom org-kanban-modern-line-spacing 0
+  "Buffer-local `line-spacing' for the kanban board.
+The board renders each card as a solid colored tile spanning several
+screen lines.  When extra vertical space is added between lines, the
+card background (like `hl-line') does not fill that space, so faint
+horizontal stripes appear between a card's wrapped lines.
+
+The default of 0 removes that extra space so cards read as continuous
+tiles.  Note that a value of nil does NOT mean \"no spacing\"; like the
+standard `line-spacing' variable, nil falls back to the frame's
+`line-spacing' parameter (often the source of the stripes), so use 0 to
+guarantee solid tiles.  A positive number adds that many pixels (or, if
+a float, that fraction of the default line height) between lines."
+  :type '(choice (const :tag "No extra spacing (solid tiles)" 0)
+                 (number :tag "Pixels (or fraction if < 1.0)")
+                 (const :tag "Inherit the frame's line-spacing" nil))
+  :group 'org-kanban-modern)
+
 ;;;; Faces
 
 ;; All board faces are defined by INHERITANCE from standard faces rather than
@@ -1057,6 +1075,7 @@ Re-collects the board so the new window takes effect."
   "Major mode for a modern Org TODO kanban board."
   (setq truncate-lines t)
   (setq-local cursor-type nil)
+  (setq-local line-spacing org-kanban-modern-line-spacing)
   (unless (local-variable-p 'org-kanban-modern--done-window)
     (setq-local org-kanban-modern--done-window
                 org-kanban-modern-done-within-days))

@@ -93,6 +93,12 @@ See =M-x customize-group RET org-kanban-modern RET=.  Key variables:
   of the priority color into the card background.  Only applies when
   ~org-kanban-modern-priority-style~ tints the background (~background~ or
   ~both~).
+- ~org-kanban-modern-line-spacing~ — buffer-local ~line-spacing~ for the board
+  (default ~0~).  Cards are solid colored tiles; if your frame or theme adds
+  inter-line spacing, the card background does not fill it and faint stripes
+  appear between a card's wrapped lines.  ~0~ removes that space so tiles read
+  as continuous.  (Note: ~nil~ inherits the frame's spacing — the usual cause
+  of the stripes — so prefer ~0~.)
 
 Active (non-done) cards are always shown regardless of this setting.
 
