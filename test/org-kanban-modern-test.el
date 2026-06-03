@@ -539,8 +539,83 @@ against regressing the defaults to non-ASCII."
 
 ;;;; Direct card editing
 
+(defun org-kanban-modern-test--file-contents (file)
+  "Return FILE contents as a string."
+  (with-temp-buffer
+    (insert-file-contents file)
+    (buffer-string)))
+
+(defun org-kanban-modern-test--kill-file-buffer (file)
+  "Kill FILE's visiting buffer without saving test changes."
+  (when-let ((buf (find-buffer-visiting file)))
+    (with-current-buffer buf (set-buffer-modified-p nil))
+    (kill-buffer buf)))
+
+(defun org-kanban-modern-test--card-by-title (title)
+  "Return the collected card with TITLE."
+  (cl-find title org-kanban-modern--cards
+           :key #'org-kanban-modern-card-title
+           :test #'equal))
+
+(ert-deftest org-kanban-modern-test-set-todo-saves-clean-source ()
+  "`--set-todo' saves its Org change when the source buffer was clean."
+  (let* ((org-todo-keywords '((sequence "TODO" "|" "DONE")))
+         (org-log-done nil)
+         (file (make-temp-file "okm-set-todo" nil ".org"
+                               "* TODO write tests\n")))
+    (unwind-protect
+        (let ((org-kanban-modern-files (list file))
+              (org-kanban-modern-columns '("TODO" "DONE")))
+          (with-temp-buffer
+            (setq org-kanban-modern--cards (org-kanban-modern--collect))
+            (org-kanban-modern--set-todo
+             (org-kanban-modern-test--card-by-title "write tests")
+             "DONE")
+            (should (string-match-p "\\`\\* DONE write tests\n\\'"
+                                    (org-kanban-modern-test--file-contents
+                                     file)))))
+      (org-kanban-modern-test--kill-file-buffer file)
+      (delete-file file))))
+
+(ert-deftest org-kanban-modern-test-set-todo-keeps-dirty-source-unsaved ()
+  "`--set-todo' does not save unrelated pre-existing source edits."
+  (let* ((org-todo-keywords '((sequence "TODO" "|" "DONE")))
+         (org-log-done nil)
+         (file (make-temp-file "okm-set-todo-dirty" nil ".org"
+                               "* TODO write tests\n"))
+         messages)
+    (unwind-protect
+        (let ((org-kanban-modern-files (list file))
+              (org-kanban-modern-columns '("TODO" "DONE")))
+          (with-current-buffer (find-file-noselect file)
+            (goto-char (point-max))
+            (insert "Unrelated draft note.\n"))
+          (with-temp-buffer
+            (cl-letf (((symbol-function 'message)
+                       (lambda (format-string &rest args)
+                         (push (apply #'format-message format-string args)
+                               messages))))
+              (setq org-kanban-modern--cards (org-kanban-modern--collect))
+              (org-kanban-modern--set-todo
+               (org-kanban-modern-test--card-by-title "write tests")
+               "DONE")))
+          (should (equal (org-kanban-modern-test--file-contents file)
+                         "* TODO write tests\n"))
+          (with-current-buffer (find-buffer-visiting file)
+            (should (buffer-modified-p))
+            (should (string-match-p "\\`\\* DONE write tests\n"
+                                    (buffer-string)))
+            (should (string-match-p "Unrelated draft note"
+                                    (buffer-string))))
+          (should (cl-some
+                   (lambda (msg)
+                     (string-match-p "already has unsaved edits" msg))
+                   messages)))
+      (org-kanban-modern-test--kill-file-buffer file)
+      (delete-file file))))
+
 (ert-deftest org-kanban-modern-test-edit-at-card ()
-  "`--edit-at-card' edits the source heading, saves, and re-collects.
+  "`--edit-at-card' edits a clean source heading, saves, and re-collects.
 The selection (stable ID) survives the edit."
   (let* ((org-todo-keywords '((sequence "TODO" "|" "DONE")))
          (file (make-temp-file "okm-edit" nil ".org"
@@ -563,17 +638,57 @@ The selection (stable ID) survives the edit."
                 (should (equal (org-kanban-modern-card-title edited)
                                "write tests"))
                 ;; The change was written back to disk.
-                (with-temp-buffer
-                  (insert-file-contents file)
-                  (should (string-match-p "\\[#A\\]" (buffer-string))))
+                (should (string-match-p "\\[#A\\]"
+                                        (org-kanban-modern-test--file-contents
+                                         file)))
                 ;; The board was re-collected with the new priority, and the
                 ;; selection survived because the ID is stable.
                 (let ((card (org-kanban-modern--selected-card)))
                   (should card)
                   (should (eq (org-kanban-modern-card-priority card) ?A)))))))
-      (when-let ((buf (find-buffer-visiting file)))
-        (with-current-buffer buf (set-buffer-modified-p nil))
-        (kill-buffer buf))
+      (org-kanban-modern-test--kill-file-buffer file)
+      (delete-file file))))
+
+(ert-deftest org-kanban-modern-test-edit-at-card-keeps-dirty-source-unsaved ()
+  "`--edit-at-card' does not save unrelated pre-existing source edits."
+  (let* ((org-todo-keywords '((sequence "TODO" "|" "DONE")))
+         (file (make-temp-file "okm-edit-dirty" nil ".org"
+                               "* TODO write tests\n"))
+         messages)
+    (unwind-protect
+        (let ((org-kanban-modern-files (list file))
+              (org-kanban-modern-columns '("TODO" "DONE")))
+          (with-current-buffer (find-file-noselect file)
+            (goto-char (point-max))
+            (insert "Unrelated draft note.\n"))
+          (with-temp-buffer
+            (cl-letf (((symbol-function 'org-kanban-modern--render)
+                       #'ignore)
+                      ((symbol-function 'message)
+                       (lambda (format-string &rest args)
+                         (push (apply #'format-message format-string args)
+                               messages))))
+              (setq org-kanban-modern--cards (org-kanban-modern--collect))
+              (setq org-kanban-modern--selected-id
+                    (org-kanban-modern-card-id
+                     (org-kanban-modern-test--card-by-title "write tests")))
+              (org-kanban-modern--edit-at-card
+               (lambda () (org-priority ?A)))
+              (let ((card (org-kanban-modern--selected-card)))
+                (should card)
+                (should (eq (org-kanban-modern-card-priority card) ?A)))))
+          (should (equal (org-kanban-modern-test--file-contents file)
+                         "* TODO write tests\n"))
+          (with-current-buffer (find-buffer-visiting file)
+            (should (buffer-modified-p))
+            (should (string-match-p "\\[#A\\]" (buffer-string)))
+            (should (string-match-p "Unrelated draft note"
+                                    (buffer-string))))
+          (should (cl-some
+                   (lambda (msg)
+                     (string-match-p "already has unsaved edits" msg))
+                   messages)))
+      (org-kanban-modern-test--kill-file-buffer file)
       (delete-file file))))
 
 (provide 'org-kanban-modern-test)

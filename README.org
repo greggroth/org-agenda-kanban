@@ -179,6 +179,11 @@ repeaters, inline markup, and recently-closed cards.
 With a prefix argument (=C-u RET= / =C-u o=), the card's heading opens in
 another window instead of the current one.
 
+Board edits use Org's normal commands and are saved immediately when the
+source Org buffer was clean before the edit.  If that source buffer already
+has unsaved edits, the board change is left unsaved too so unrelated edits are
+not silently written to disk; save the Org buffer explicitly when ready.
+
 * Customization
 
 See =M-x customize-group RET org-kanban-modern RET=.  Key variables:

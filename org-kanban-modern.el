@@ -1087,19 +1087,32 @@ stable card ID."
                      (t (org-kanban-modern--find-heading card)))))
            (and pos (cons buf pos))))))))
 
+(defun org-kanban-modern--save-source-buffer-after-edit (was-modified)
+  "Save current source buffer unless WAS-MODIFIED was non-nil.
+WAS-MODIFIED means the buffer had unsaved changes before a board edit.
+When it is non-nil, leave the buffer unsaved so unrelated edits are not
+persisted without the user's action."
+  (if was-modified
+      (message "Source buffer %s already has unsaved edits; not saving automatically"
+               (buffer-name))
+    (save-buffer)))
+
 (defun org-kanban-modern--set-todo (card target)
   "Set CARD's heading to the TODO keyword TARGET in its source file.
 The change is written through `org-todo' so logging and notes are
-honored, then the buffer is saved."
+honored.  The source buffer is saved when it had no unsaved edits before
+the board change; otherwise it is left modified so unrelated edits are
+not silently persisted."
   (let ((loc (org-kanban-modern--locate card)))
     (unless loc
       (user-error "Cannot locate heading for %S; refresh the board"
                   (org-kanban-modern-card-title card)))
     (with-current-buffer (car loc)
-      (org-with-wide-buffer
-       (goto-char (cdr loc))
-       (org-todo target))
-      (save-buffer))))
+      (let ((was-modified (buffer-modified-p)))
+        (org-with-wide-buffer
+         (goto-char (cdr loc))
+         (org-todo target))
+        (org-kanban-modern--save-source-buffer-after-edit was-modified)))))
 
 (defun org-kanban-modern--move (delta)
   "Move the selected card DELTA columns and persist the new TODO state."
@@ -1133,8 +1146,10 @@ honored, then the buffer is saved."
   "Run ACTION on the selected card's heading, then refresh the board.
 ACTION is a function of no arguments called with point on the heading
 in the (widened) source buffer; it is expected to edit the entry.  The
-source buffer is then saved and the board re-collected, preserving the
-selection by stable ID.  Returns the card that was edited."
+source buffer is saved when it had no unsaved edits before the board
+change; otherwise it is left modified.  The board is then re-collected,
+preserving the selection by stable ID.  Returns the card that was
+edited."
   (let ((card (org-kanban-modern--selected-card)))
     (unless card (user-error "No card selected"))
     (let ((loc (org-kanban-modern--locate card)))
@@ -1142,10 +1157,11 @@ selection by stable ID.  Returns the card that was edited."
         (user-error "Cannot locate heading for %S; refresh the board"
                     (org-kanban-modern-card-title card)))
       (with-current-buffer (car loc)
-        (org-with-wide-buffer
-         (goto-char (cdr loc))
-         (funcall action))
-        (save-buffer)))
+        (let ((was-modified (buffer-modified-p)))
+          (org-with-wide-buffer
+           (goto-char (cdr loc))
+           (funcall action))
+          (org-kanban-modern--save-source-buffer-after-edit was-modified))))
     ;; Re-collect so the card carries its new state/priority/tags and a fresh
     ;; marker; the ID is stable across the edit, so the selection survives.
     (setq org-kanban-modern--cards (org-kanban-modern--collect))
@@ -1155,7 +1171,8 @@ selection by stable ID.  Returns the card that was edited."
 (defun org-kanban-modern-set-todo ()
   "Set the TODO state of the selected card via the `org-todo' menu.
 Mirrors \\[org-todo] in an Org buffer: the change is written back to the
-source file (logging and notes honored) and the board is refreshed."
+source buffer (logging and notes honored), saved when that buffer was
+clean before the edit, and the board is refreshed."
   (interactive)
   (let ((card (org-kanban-modern--edit-at-card
                (lambda () (call-interactively #'org-todo)))))
@@ -1163,7 +1180,8 @@ source file (logging and notes honored) and the board is refreshed."
 
 (defun org-kanban-modern-set-priority ()
   "Set the priority of the selected card via `org-priority'.
-The change is written back to the source file and the board refreshed."
+The change is written back to the source buffer, saved when that buffer
+was clean before the edit, and the board refreshed."
   (interactive)
   (let ((card (org-kanban-modern--edit-at-card
                (lambda () (call-interactively #'org-priority)))))
@@ -1171,7 +1189,8 @@ The change is written back to the source file and the board refreshed."
 
 (defun org-kanban-modern-set-tags ()
   "Set the tags of the selected card via `org-set-tags-command'.
-The change is written back to the source file and the board refreshed."
+The change is written back to the source buffer, saved when that buffer
+was clean before the edit, and the board refreshed."
   (interactive)
   (let ((card (org-kanban-modern--edit-at-card
                (lambda () (call-interactively #'org-set-tags-command)))))
