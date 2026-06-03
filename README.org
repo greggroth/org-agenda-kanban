@@ -164,6 +164,7 @@ repeaters, inline markup, and recently-closed cards.
 | =M-<left>=  / =<=        | Move card to previous column                |
 | =s=                    | Set the selected card's TODO state          |
 | =,=                    | Set the selected card's priority            |
+| =+= / =-=                | Raise / lower the selected card's priority  |
 | =:=                    | Set the selected card's tags                |
 | c                    | Run =org-capture=                             |
 | =RET= / =o=              | Visit card's heading in its Org file        |

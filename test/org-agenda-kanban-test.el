@@ -774,5 +774,54 @@ The selection (stable ID) survives the edit."
       (org-agenda-kanban-test--kill-file-buffer file)
       (delete-file file))))
 
+;;;; Priority up / down commands
+
+(ert-deftest org-agenda-kanban-test-priority-up-raises-priority ()
+  "`priority-up' on a [#B] card raises it toward [#A], like `org-agenda'."
+  (let* ((org-todo-keywords '((sequence "TODO" "|" "DONE")))
+         (file (make-temp-file "okm-prio-up" nil ".org"
+                               "* TODO [#B] write tests\n")))
+    (unwind-protect
+        (let ((org-agenda-kanban-files (list file))
+              (org-agenda-kanban-columns '("TODO" "DONE")))
+          (with-temp-buffer
+            (cl-letf (((symbol-function 'org-agenda-kanban--render) #'ignore))
+              (setq org-agenda-kanban--cards (org-agenda-kanban--collect))
+              (setq org-agenda-kanban--selected-id
+                    (org-agenda-kanban-card-id (car org-agenda-kanban--cards)))
+              (org-agenda-kanban-priority-up)
+              (let ((card (org-agenda-kanban--selected-card)))
+                (should card)
+                (should (eq (org-agenda-kanban-card-priority card) ?A))))))
+      (org-agenda-kanban-test--kill-file-buffer file)
+      (delete-file file))))
+
+(ert-deftest org-agenda-kanban-test-priority-down-lowers-priority ()
+  "`priority-down' on a [#B] card lowers it toward [#C], like `org-agenda'."
+  (let* ((org-todo-keywords '((sequence "TODO" "|" "DONE")))
+         (file (make-temp-file "okm-prio-down" nil ".org"
+                               "* TODO [#B] write tests\n")))
+    (unwind-protect
+        (let ((org-agenda-kanban-files (list file))
+              (org-agenda-kanban-columns '("TODO" "DONE")))
+          (with-temp-buffer
+            (cl-letf (((symbol-function 'org-agenda-kanban--render) #'ignore))
+              (setq org-agenda-kanban--cards (org-agenda-kanban--collect))
+              (setq org-agenda-kanban--selected-id
+                    (org-agenda-kanban-card-id (car org-agenda-kanban--cards)))
+              (org-agenda-kanban-priority-down)
+              (let ((card (org-agenda-kanban--selected-card)))
+                (should card)
+                (should (eq (org-agenda-kanban-card-priority card) ?C))))))
+      (org-agenda-kanban-test--kill-file-buffer file)
+      (delete-file file))))
+
+(ert-deftest org-agenda-kanban-test-priority-keys-bound ()
+  "`+' and `-' invoke priority-up / priority-down in the kanban map."
+  (should (eq (lookup-key org-agenda-kanban-mode-map "+")
+              #'org-agenda-kanban-priority-up))
+  (should (eq (lookup-key org-agenda-kanban-mode-map "-")
+              #'org-agenda-kanban-priority-down)))
+
 (provide 'org-agenda-kanban-test)
 ;;; org-agenda-kanban-test.el ends here

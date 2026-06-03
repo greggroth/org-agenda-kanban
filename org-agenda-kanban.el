@@ -1233,6 +1233,26 @@ Save the source buffer explicitly when ready."
                (lambda () (call-interactively #'org-priority)))))
     (message "Set priority of \"%s\"" (org-agenda-kanban-card-title card))))
 
+(defun org-agenda-kanban-priority-up ()
+  "Increase the priority of the selected card via `org-priority-up'.
+Mirrors \\[org-agenda-priority-up] in `org-agenda': the change is
+written back to the source buffer and the board refreshed.  Save the
+source buffer explicitly when ready."
+  (interactive)
+  (let ((card (org-agenda-kanban--edit-at-card
+               (lambda () (org-priority-up)))))
+    (message "Raised priority of \"%s\"" (org-agenda-kanban-card-title card))))
+
+(defun org-agenda-kanban-priority-down ()
+  "Decrease the priority of the selected card via `org-priority-down'.
+Mirrors \\[org-agenda-priority-down] in `org-agenda': the change is
+written back to the source buffer and the board refreshed.  Save the
+source buffer explicitly when ready."
+  (interactive)
+  (let ((card (org-agenda-kanban--edit-at-card
+               (lambda () (org-priority-down)))))
+    (message "Lowered priority of \"%s\"" (org-agenda-kanban-card-title card))))
+
 (defun org-agenda-kanban-set-tags ()
   "Set the tags of the selected card via `org-set-tags-command'.
 The change is written back to the source buffer and the board refreshed.
@@ -1437,6 +1457,8 @@ Re-collects the board so the new window takes effect."
     (define-key map "<" #'org-agenda-kanban-move-left)
     (define-key map "s" #'org-agenda-kanban-set-todo)
     (define-key map "," #'org-agenda-kanban-set-priority)
+    (define-key map "+" #'org-agenda-kanban-priority-up)
+    (define-key map "-" #'org-agenda-kanban-priority-down)
     (define-key map ":" #'org-agenda-kanban-set-tags)
     (define-key map [mouse-1] #'org-agenda-kanban--mouse-click)
     (define-key map [double-mouse-1] #'org-agenda-kanban--mouse-visit)
