@@ -823,5 +823,45 @@ The selection (stable ID) survives the edit."
   (should (eq (lookup-key org-agenda-kanban-mode-map "-")
               #'org-agenda-kanban-priority-down)))
 
+(ert-deftest org-agenda-kanban-test-agenda-aligned-keys-bound ()
+  "Top-level keys mirror Org Agenda: `t' sets TODO, `s' saves, etc."
+  (should (eq (lookup-key org-agenda-kanban-mode-map "t")
+              #'org-agenda-kanban-set-todo))
+  (should (eq (lookup-key org-agenda-kanban-mode-map "s")
+              #'org-save-all-org-buffers))
+  (should (eq (lookup-key org-agenda-kanban-mode-map "g")
+              #'org-agenda-kanban-refresh))
+  (should (eq (lookup-key org-agenda-kanban-mode-map "r")
+              #'org-agenda-kanban-refresh))
+  (should (eq (lookup-key org-agenda-kanban-mode-map "k")
+              #'org-capture))
+  (should (eq (lookup-key org-agenda-kanban-mode-map "c")
+              #'org-capture)))
+
+(ert-deftest org-agenda-kanban-test-filter-prefix-bound ()
+  "Tag/priority filters live under the `/' prefix, with `\\' as a shortcut."
+  (should (eq (lookup-key org-agenda-kanban-mode-map "/t")
+              #'org-agenda-kanban-toggle-tag))
+  (should (eq (lookup-key org-agenda-kanban-mode-map "/+")
+              #'org-agenda-kanban-include-tag))
+  (should (eq (lookup-key org-agenda-kanban-mode-map "/-")
+              #'org-agenda-kanban-exclude-tag))
+  (should (eq (lookup-key org-agenda-kanban-mode-map "/r")
+              #'org-agenda-kanban-remove-tag))
+  (should (eq (lookup-key org-agenda-kanban-mode-map "/p")
+              #'org-agenda-kanban-filter-by-priority))
+  (should (eq (lookup-key org-agenda-kanban-mode-map "/c")
+              #'org-agenda-kanban-clear-filters))
+  (should (eq (lookup-key org-agenda-kanban-mode-map "/d")
+              #'org-agenda-kanban-set-done-window))
+  (should (eq (lookup-key org-agenda-kanban-mode-map "\\")
+              #'org-agenda-kanban-toggle-tag)))
+
+(ert-deftest org-agenda-kanban-test-old-tag-prefix-removed ()
+  "The legacy `t' tag-filter prefix no longer shadows the `t' TODO key."
+  (should-not (eq (lookup-key org-agenda-kanban-mode-map "tt")
+                  #'org-agenda-kanban-toggle-tag))
+  (should-not (keymapp (lookup-key org-agenda-kanban-mode-map "t"))))
+
 (provide 'org-agenda-kanban-test)
 ;;; org-agenda-kanban-test.el ends here

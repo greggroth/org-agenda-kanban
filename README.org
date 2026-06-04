@@ -162,27 +162,30 @@ repeaters, inline markup, and recently-closed cards.
 | =TAB= / =S-TAB=          | Move selection forward / backward column    |
 | =M-<right>= / =>=        | Move card to next column                    |
 | =M-<left>=  / =<=        | Move card to previous column                |
-| =s=                    | Set the selected card's TODO state          |
+| =t=                    | Set the selected card's TODO state          |
 | =,=                    | Set the selected card's priority            |
 | =+= / =-=                | Raise / lower the selected card's priority  |
 | =:=                    | Set the selected card's tags                |
-| c                    | Run =org-capture=                             |
+| =s=                    | Save all Org buffers                        |
+| =k= / =c=                | Run =org-capture=                             |
 | =RET= / =o=              | Visit card's heading in its Org file        |
 | =double-mouse-1=       | Visit card's heading in its Org file        |
-| =t t= / =t +=            | Toggle a tag in the *include* filter (prompt) |
-| =t -=                  | Toggle a tag in the *exclude* filter (prompt) |
-| =t r=                  | Remove a tag from the filter (prompt)       |
-| =t p=                  | Filter by effective priority (prompt)       |
-| =t c=                  | Clear all filters                           |
-| =t d=                  | Set the done-card date window (prompt)      |
-| =g=                    | Refresh                                     |
+| =\=                    | Toggle a tag in the *include* filter (prompt) |
+| =/ t= / =/ +=            | Toggle a tag in the *include* filter (prompt) |
+| =/ -=                  | Toggle a tag in the *exclude* filter (prompt) |
+| =/ r=                  | Remove a tag from the filter (prompt)       |
+| =/ p=                  | Filter by effective priority (prompt)       |
+| =/ c=                  | Clear all filters                           |
+| =/ d=                  | Set the done-card date window (prompt)      |
+| =g= / =r=                | Refresh                                     |
 | =q=                    | Quit                                        |
 
 With a prefix argument (=C-u RET= / =C-u o=), the card's heading opens in
 another window instead of the current one.
 
 Board edits use Org's normal commands and leave the source Org buffer unsaved,
-matching Org Agenda.  Save the Org buffer explicitly when ready.
+matching Org Agenda.  Press =s= (=org-save-all-org-buffers=) when ready, just as
+in Org Agenda.
 
 * Customization
 
