@@ -46,6 +46,7 @@
 (require 'org)
 (require 'org-agenda)
 (require 'org-element)
+(require 'calendar)
 
 ;;;; Customization
 
@@ -328,6 +329,34 @@ Sets no background so the card background shows through."
 (defface org-agenda-kanban-deadline
   '((t :inherit (fixed-pitch org-upcoming-deadline)))
   "Face for a card's DEADLINE timestamp line."
+  :group 'org-agenda-kanban)
+
+(defface org-agenda-kanban-scheduled-today
+  '((t :inherit (fixed-pitch org-scheduled-today)))
+  "Face for a SCHEDULED line whose date is today.
+Inherits `org-scheduled-today', the same face `org-agenda' uses for an
+item scheduled for the current day, so the board tracks your theme."
+  :group 'org-agenda-kanban)
+
+(defface org-agenda-kanban-scheduled-past
+  '((t :inherit (fixed-pitch org-scheduled-previously)))
+  "Face for a SCHEDULED line whose moment is in the past (overdue).
+Inherits `org-scheduled-previously', the face `org-agenda' uses for an
+item scheduled on an earlier day, so overdue cards stand out as they do
+in the agenda."
+  :group 'org-agenda-kanban)
+
+(defface org-agenda-kanban-deadline-today
+  '((t :inherit (fixed-pitch org-imminent-deadline org-warning)))
+  "Face for a DEADLINE line whose date is today.
+Inherits `org-imminent-deadline' (falling back to `org-warning' on Org
+versions that lack it) so an imminent deadline reads as urgent."
+  :group 'org-agenda-kanban)
+
+(defface org-agenda-kanban-deadline-overdue
+  '((t :inherit (fixed-pitch org-warning)))
+  "Face for a DEADLINE line whose moment is in the past (overdue).
+Inherits `org-warning' so a passed deadline is clearly flagged."
   :group 'org-agenda-kanban)
 
 (defface org-agenda-kanban-tag
@@ -756,6 +785,63 @@ repeater/warning (starts with =+=, =-=, or =.=), nor numeric."
           (mapconcat #'identity (cons (car parts) (cddr parts)) " ")
         ts))))
 
+(defun org-agenda-kanban--planning-status (raw now)
+  "Classify the RAW planning timestamp string relative to NOW.
+Return `overdue' when its moment is in the past, `today' when it falls on
+the current day (and, if it carries a time of day, that time has not yet
+passed), or nil when it is in the future, unset, or unparseable.
+
+A repeating timestamp (e.g. =<2026-06-02 Tue ++1d>=) is classified by its
+stored base date, matching `org-agenda': Org only advances the date when
+the entry is marked done, so the stored date is the current occurrence.
+A range =<a>--<b>= is classified by its start timestamp.  NOW is a Lisp
+time value used as the reference (passed explicitly so callers and tests
+are deterministic)."
+  (when raw
+    ;; Guard the whole classification: org planning strings are normally
+    ;; well formed, but a malformed-but-date-like string could pass the
+    ;; date guard and then error in `calendar-absolute-from-gregorian' or
+    ;; `encode-time'.  Treat anything unparseable as having no status.
+    (condition-case nil
+        (let ((decoded (org-parse-time-string raw t)))
+          ;; Require a full calendar date; diary sexps and malformed strings
+          ;; leave these fields nil and are treated as having no status.
+          (when (and decoded (nth 3 decoded) (nth 4 decoded) (nth 5 decoded))
+            (let* ((min (nth 1 decoded))
+                   (hour (nth 2 decoded))
+                   (day (nth 3 decoded))
+                   (mon (nth 4 decoded))
+                   (year (nth 5 decoded))
+                   (has-time (and hour min))
+                   ;; Compare whole days via absolute Gregorian day numbers,
+                   ;; avoiding elapsed-second and DST arithmetic.
+                   (plan-abs (calendar-absolute-from-gregorian (list mon day year)))
+                   (today-abs (time-to-days now)))
+              (cond
+               ((< plan-abs today-abs) 'overdue)
+               ((> plan-abs today-abs) nil)
+               ;; Same calendar day: a timed planning entry is overdue once its
+               ;; moment has passed; a date-only entry is due all day.
+               (has-time
+                (if (time-less-p now (encode-time 0 min hour day mon year))
+                    'today 'overdue))
+               (t 'today)))))
+      (error nil))))
+
+(defun org-agenda-kanban--scheduled-face (raw now)
+  "Return the face for a SCHEDULED line RAW relative to NOW."
+  (pcase (org-agenda-kanban--planning-status raw now)
+    ('overdue 'org-agenda-kanban-scheduled-past)
+    ('today 'org-agenda-kanban-scheduled-today)
+    (_ 'org-agenda-kanban-scheduled)))
+
+(defun org-agenda-kanban--deadline-face (raw now)
+  "Return the face for a DEADLINE line RAW relative to NOW."
+  (pcase (org-agenda-kanban--planning-status raw now)
+    ('overdue 'org-agenda-kanban-deadline-overdue)
+    ('today 'org-agenda-kanban-deadline-today)
+    (_ 'org-agenda-kanban-deadline)))
+
 (defun org-agenda-kanban--planning-line (glyph raw face content-width)
   "Return a propertized planning line for RAW timestamp.
 GLYPH prefixes the formatted timestamp and FACE styles the line.  When
@@ -772,21 +858,25 @@ to CONTENT-WIDTH display columns."
                   text)))
     (propertize shown 'face face)))
 
-(defun org-agenda-kanban--planning-lines (card content-width)
+(defun org-agenda-kanban--planning-lines (card content-width &optional now)
   "Return CARD's planning lines (0-2) truncated to CONTENT-WIDTH.
 Returns the deadline line first (when set) then the scheduled line (when
-set), or nil when planning display is disabled or neither is set."
+set), or nil when planning display is disabled or neither is set.  Each
+line is colored by its status relative to NOW (defaulting to the current
+time): a scheduled/deadline moment that is due today or overdue uses a
+distinct warning face, mirroring `org-agenda'."
   (when org-agenda-kanban-show-planning
-    (let ((lines '()))
+    (let ((now (or now (current-time)))
+          (lines '()))
       (when-let ((d (org-agenda-kanban-card-deadline card)))
         (push (org-agenda-kanban--planning-line
                org-agenda-kanban-deadline-glyph d
-               'org-agenda-kanban-deadline content-width)
+               (org-agenda-kanban--deadline-face d now) content-width)
               lines))
       (when-let ((s (org-agenda-kanban-card-scheduled card)))
         (push (org-agenda-kanban--planning-line
                org-agenda-kanban-scheduled-glyph s
-               'org-agenda-kanban-scheduled content-width)
+               (org-agenda-kanban--scheduled-face s now) content-width)
               lines))
       (nreverse lines))))
 
@@ -1367,6 +1457,32 @@ Save the source buffer explicitly when ready."
                (lambda () (call-interactively #'org-set-tags-command)))))
     (message "Set tags of \"%s\"" (org-agenda-kanban-card-title card))))
 
+(defun org-agenda-kanban-schedule (arg)
+  "Set the SCHEDULED time of the selected card via `org-schedule'.
+Mirrors \\[org-agenda-schedule] in `org-agenda': the change is written
+back to the source buffer (left unsaved) and the board refreshed.  A
+prefix ARG is passed through to `org-schedule', so \\[universal-argument]
+removes the entry's SCHEDULED timestamp."
+  (interactive "P")
+  (let ((card (org-agenda-kanban--edit-at-card
+               (lambda ()
+                 (let ((current-prefix-arg arg))
+                   (call-interactively #'org-schedule))))))
+    (message "Scheduled \"%s\"" (org-agenda-kanban-card-title card))))
+
+(defun org-agenda-kanban-deadline (arg)
+  "Set the DEADLINE of the selected card via `org-deadline'.
+Mirrors \\[org-agenda-deadline] in `org-agenda': the change is written
+back to the source buffer (left unsaved) and the board refreshed.  A
+prefix ARG is passed through to `org-deadline', so \\[universal-argument]
+removes the entry's DEADLINE timestamp."
+  (interactive "P")
+  (let ((card (org-agenda-kanban--edit-at-card
+               (lambda ()
+                 (let ((current-prefix-arg arg))
+                   (call-interactively #'org-deadline))))))
+    (message "Set deadline of \"%s\"" (org-agenda-kanban-card-title card))))
+
 ;;;; Visiting the source heading
 
 (defun org-agenda-kanban-visit-card (&optional other-window)
@@ -1548,6 +1664,8 @@ Re-collects the board so the new window takes effect."
     (define-key map "+" #'org-agenda-kanban-priority-up)
     (define-key map "-" #'org-agenda-kanban-priority-down)
     (define-key map ":" #'org-agenda-kanban-set-tags)
+    (define-key map (kbd "C-c C-s") #'org-agenda-kanban-schedule)
+    (define-key map (kbd "C-c C-d") #'org-agenda-kanban-deadline)
     (define-key map "s" #'org-save-all-org-buffers)
     (define-key map [mouse-1] #'org-agenda-kanban--mouse-click)
     (define-key map [double-mouse-1] #'org-agenda-kanban--mouse-visit)

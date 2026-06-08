@@ -19,7 +19,10 @@
 # cards get a CLOSED stamp and stay visible under the done-date filter.
 #
 # Dates below sit around 2026-06-02 so the SCHEDULED/DEADLINE lines and the
-# recent CLOSED stamps render meaningfully.
+# recent CLOSED stamps render meaningfully.  Due/overdue coloring is relative
+# to *today*, so when you open this after that date the past SCHEDULED/DEADLINE
+# lines show in their overdue faces; later-dated cards keep the normal planning
+# color.  Try C-c C-s / C-c C-d on a card to (re)schedule or set a deadline.
 
 * TODO [#A] Review open PRs                                        :work:review:
 SCHEDULED: <2026-06-03 Wed 11:00 ++1d>
