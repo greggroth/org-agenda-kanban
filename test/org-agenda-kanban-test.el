@@ -485,6 +485,73 @@ order."
                :scheduled "<2026-06-02 Tue>")))
     (should (= (length (org-agenda-kanban--planning-lines card 40)) 1))))
 
+(ert-deftest org-agenda-kanban-test-planning-status ()
+  "`--planning-status' classifies a timestamp relative to a fixed NOW."
+  ;; Reference moment: 2026-06-08 12:00 local time.
+  (let ((now (encode-time 0 0 12 8 6 2026)))
+    ;; A date in the past is overdue; the future is nil; today is `today'.
+    (should (eq (org-agenda-kanban--planning-status "<2026-06-02 Tue>" now)
+                'overdue))
+    (should (eq (org-agenda-kanban--planning-status "<2026-06-08 Mon>" now)
+                'today))
+    (should-not (org-agenda-kanban--planning-status "<2026-06-10 Wed>" now))
+    ;; Same day with a time: overdue once the time has passed, else today.
+    (should (eq (org-agenda-kanban--planning-status "<2026-06-08 Mon 09:00>" now)
+                'overdue))
+    (should (eq (org-agenda-kanban--planning-status "<2026-06-08 Mon 16:00>" now)
+                'today))
+    ;; Boundary: a timed entry whose moment equals NOW exactly is overdue.
+    (should (eq (org-agenda-kanban--planning-status "<2026-06-08 Mon 12:00>" now)
+                'overdue))
+    ;; A repeater is classified by its stored base date, not a future shift.
+    (should (eq (org-agenda-kanban--planning-status "<2026-06-02 Tue ++1d>" now)
+                'overdue))
+    ;; Inactive bracket form parses the same way.
+    (should (eq (org-agenda-kanban--planning-status "[2026-06-02 Tue]" now)
+                'overdue))
+    ;; A range is classified by its start timestamp.
+    (should (eq (org-agenda-kanban--planning-status
+                 "<2026-06-02 Tue>--<2026-06-30 Tue>" now)
+                'overdue))
+    ;; Diary sexps and nil have no calendar date, hence no status.
+    (should-not (org-agenda-kanban--planning-status "%%(diary-float t 4 2)" now))
+    (should-not (org-agenda-kanban--planning-status nil now))))
+
+(ert-deftest org-agenda-kanban-test-planning-faces ()
+  "Scheduled/deadline face mappers pick the status face relative to NOW."
+  (let ((now (encode-time 0 0 12 8 6 2026)))
+    ;; Scheduled: past -> past face, today -> today face, future -> default.
+    (should (eq (org-agenda-kanban--scheduled-face "<2026-06-02 Tue>" now)
+                'org-agenda-kanban-scheduled-past))
+    (should (eq (org-agenda-kanban--scheduled-face "<2026-06-08 Mon>" now)
+                'org-agenda-kanban-scheduled-today))
+    (should (eq (org-agenda-kanban--scheduled-face "<2026-06-10 Wed>" now)
+                'org-agenda-kanban-scheduled))
+    ;; Deadline: past -> overdue face, today -> today face, future -> default.
+    (should (eq (org-agenda-kanban--deadline-face "<2026-06-02 Tue>" now)
+                'org-agenda-kanban-deadline-overdue))
+    (should (eq (org-agenda-kanban--deadline-face "<2026-06-08 Mon>" now)
+                'org-agenda-kanban-deadline-today))
+    (should (eq (org-agenda-kanban--deadline-face "<2026-06-10 Wed>" now)
+                'org-agenda-kanban-deadline))))
+
+(ert-deftest org-agenda-kanban-test-planning-lines-status-face ()
+  "`--planning-lines' applies the status face for the given NOW."
+  (let* ((org-agenda-kanban-show-planning t)
+         (org-agenda-kanban-scheduled-glyph "S:")
+         (org-agenda-kanban-deadline-glyph "D:")
+         (now (encode-time 0 0 12 8 6 2026))
+         (card (org-agenda-kanban-card-create
+                :id "s" :title "Task" :todo "TODO"
+                :scheduled "<2026-06-02 Tue>"
+                :deadline "<2026-06-02 Tue>"))
+         (lines (org-agenda-kanban--planning-lines card 40 now)))
+    ;; Deadline line is first, scheduled second; both overdue.
+    (should (eq (get-text-property 0 'face (nth 0 lines))
+                'org-agenda-kanban-deadline-overdue))
+    (should (eq (get-text-property 0 'face (nth 1 lines))
+                'org-agenda-kanban-scheduled-past))))
+
 (ert-deftest org-agenda-kanban-test-default-glyph-widths ()
   "Default planning glyphs are pure ASCII for a deterministic grid width.
 A non-ASCII default (emoji, or any symbol absent from the user's

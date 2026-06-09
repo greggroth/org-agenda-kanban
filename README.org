@@ -43,6 +43,18 @@ configurable set of Org files.  The board is inspired by the visual polish of
   ~org-agenda-kanban-planning-compact~.  Toggle the lines with
   ~org-agenda-kanban-show-planning~ and set the glyphs with
   ~org-agenda-kanban-scheduled-glyph~ / ~org-agenda-kanban-deadline-glyph~.
+- *Due / overdue highlighting.*  When a card's =SCHEDULED= or =DEADLINE=
+  moment is today or in the past, that line is recolored with a warning
+  face, mirroring =org-agenda='s due/overdue colors, so slipping tasks
+  stand out at a glance.  A timed entry (e.g. =09:00=) is "overdue" only
+  once its time has passed; a date-only entry is "due" for the whole day.
+  Repeating tasks are judged by their stored date, just like =org-agenda=.
+  The colors come from Org's own faces — see [[*Priorities, tags, and faces (inherited from Org)][Priorities, tags, and faces]].
+- *Schedule and set deadlines from the board.*  Press =C-c C-s= to set the
+  selected card's =SCHEDULED= time and =C-c C-d= for its =DEADLINE=, the
+  same keys =org-agenda= uses.  Both run Org's normal =org-schedule= /
+  =org-deadline= prompts and write back to the source heading (=C-u=
+  removes the timestamp).
 - *Sorting.*  Within each column, cards are sorted by Org priority (highest
   first) by default.  Like ~org-agenda~, an unprioritized card is treated as
   ~org-default-priority~ (normally =[#B]=), so it interleaves with explicit
@@ -137,7 +149,14 @@ shows up here:
 - *Planning colors* reuse Org's planning faces: ~org-agenda-kanban-scheduled~
   inherits ~org-scheduled~ and ~org-agenda-kanban-deadline~ inherits
   ~org-upcoming-deadline~, so timestamps track your theme like the rest of the
-  board.
+  board.  When a planning moment is due today or overdue the line switches to a
+  warning face that likewise inherits Org's own due/overdue faces:
+  ~org-agenda-kanban-scheduled-today~ (~org-scheduled-today~) and
+  ~org-agenda-kanban-scheduled-past~ (~org-scheduled-previously~) for scheduled
+  cards, and ~org-agenda-kanban-deadline-today~ (~org-imminent-deadline~) and
+  ~org-agenda-kanban-deadline-overdue~ (~org-warning~) for deadlines.  Restyle
+  any of these faces to taste, or make them match the base face to turn the
+  highlighting off.
 
 * Usage
 
@@ -167,6 +186,8 @@ repeaters, inline markup, and recently-closed cards.
 | =,=                    | Set the selected card's priority            |
 | =+= / =-=                | Raise / lower the selected card's priority  |
 | =:=                    | Set the selected card's tags                |
+| =C-c C-s=              | Set the selected card's =SCHEDULED= time      |
+| =C-c C-d=              | Set the selected card's =DEADLINE=            |
 | =s=                    | Save all Org buffers                        |
 | =k= / =c=                | Run =org-capture=                             |
 | =RET= / =o=              | Visit card's heading in its Org file        |
