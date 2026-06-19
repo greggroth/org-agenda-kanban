@@ -359,6 +359,22 @@ order."
       (should-not (get-text-property 4 'keymap s))
       (should-not (get-text-property 4 'help-echo s)))))
 
+(ert-deftest org-agenda-kanban-test-fontify-title-strips-display ()
+  ;; A minor mode like `org-modern' renders a statistics cookie such as
+  ;; "[0/2]" with a `display' substitution (an SVG/badge).  `string-width'
+  ;; ignores `display', so leaving it on the title would make the measured
+  ;; width diverge from the rendered width and break card alignment.  The
+  ;; fontified title must therefore carry no `display' property.
+  (let ((org-agenda-kanban-render-markup t))
+    (let ((in (copy-sequence "tasks [0/2] done")))
+      (put-text-property 6 11 'display (propertize "PILL" 'face 'shadow) in)
+      (let ((s (org-agenda-kanban--fontify-title in)))
+        (should (equal (substring-no-properties s) "tasks [0/2] done"))
+        (should-not (get-text-property 6 'display s))
+        ;; Width is measured from the literal characters, not the badge.
+        (should (= (string-width s)
+                   (string-width (substring-no-properties s))))))))
+
 ;;;; Priority coloring
 
 (ert-deftest org-agenda-kanban-test-priority-cookie-face ()
