@@ -701,10 +701,17 @@ Text properties on STR are preserved."
 
 (defconst org-agenda-kanban--markup-strip-props
   '(keymap nil help-echo nil mouse-face nil htmlize-link nil org-emphasis nil
-    font-lock-multiline nil rear-nonsticky nil invisible nil)
+    font-lock-multiline nil rear-nonsticky nil invisible nil display nil)
   "Property/value plist removed from fontified titles via `remove-text-properties'.
 These are Org/font-lock interaction properties that must not leak onto a
-kanban card; only display faces are kept.")
+kanban card; only faces are kept.
+
+`display' is stripped because the board lays out in fixed character columns
+and measures width with `string-width', which ignores `display' substitutions.
+A minor mode such as `org-modern' replaces a statistics cookie like =[1/3]=
+with a narrower SVG/badge via a `display' property; keeping it would make the
+measured width diverge from the rendered width and break card alignment.
+Removing it lets the cookie render as its literal, deterministic-width text.")
 
 (defun org-agenda-kanban--fontify-title (title)
   "Return TITLE with Org inline markup rendered, honoring options.
